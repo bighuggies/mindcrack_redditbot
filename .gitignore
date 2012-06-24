@@ -1,0 +1,5 @@
+ENV
+*.pyc
+reddit_api.cfg
+config.json
+*.db
