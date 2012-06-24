@@ -1,3 +1,5 @@
 {
-	"password": "your_password"
+	"username": "bot_name",
+	"password": "bot_password",
+	"subreddit": "subredditname"
 }

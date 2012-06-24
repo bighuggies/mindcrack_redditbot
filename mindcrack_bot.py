@@ -8,7 +8,7 @@ def main():
     cfg = json.load(open('config.json'))
 
     r = reddit.Reddit(user_agent='Mindcrack YouTube video fetcher bot')
-    r.login('Mindcrack_Bot', cfg['password'])
+    r.login(cfg['username'], cfg['password'])
 
     conn = sqlite.connect('videos.db')
     cur = conn.cursor()
@@ -30,7 +30,7 @@ def main():
 
                 print(submission_title)
 
-                r.submit('mindcrackbottest', submission_title, url=video_url)
+                r.submit(cfg['subreddit'], submission_title, url=video_url)
 
                 cur.execute('INSERT INTO videos VALUES (?, ?, ?, ?)', (video['video_id'], video['title'], video['uploader'], video['duration']))
                 conn.commit()
