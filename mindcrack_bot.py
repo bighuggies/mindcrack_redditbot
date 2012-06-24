@@ -30,7 +30,10 @@ def main():
 
                 print(submission_title)
 
-                r.submit(cfg['subreddit'], submission_title, url=video_url)
+                try:
+                    r.submit(cfg['subreddit'], submission_title, url=video_url)
+                except:
+                    pass
 
                 cur.execute('INSERT INTO videos VALUES (?, ?, ?, ?)', (video['video_id'], video['title'], video['uploader'], video['duration']))
                 conn.commit()
