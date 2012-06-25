@@ -1,5 +1,6 @@
 {
 	"username": "bot_name",
 	"password": "bot_password",
-	"subreddit": "subredditname"
+	"subreddit": "subredditname",
+	"num_videos": 2
 }

@@ -3,3 +3,4 @@ ENV
 reddit_api.cfg
 config.json
 *.db
+*.log
