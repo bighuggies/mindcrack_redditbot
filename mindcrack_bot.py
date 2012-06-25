@@ -1,6 +1,8 @@
 import json
 import logging
 import datetime
+import os
+import sys
 
 import reddit
 
@@ -35,11 +37,20 @@ mindcrackers = [
 
 
 def main():
-    logging.basicConfig(format='%(asctime)s %(message)s', filename='mindcrackredditbot.log', level=logging.DEBUG)
+    try:
+        cfg_dir = sys.argv[1]
+    except IndexError:
+        cfg_dir = raw_input('Where is config.json located?')
+
+    cfg = json.load(open(os.path.join(cfg_dir, 'config.json')))
+
+    logging.basicConfig(format='%(asctime)s %(message)s',
+        filename=os.path.join(cfg['logging_dir'], 'mindcrackredditbot.log'),
+        level=logging.DEBUG)
     logging.info('Started')
 
     # Find out when the last video check was completed.
-    with open('timestamp.log', 'r+') as t:
+    with open(os.path.join(cfg['logging_dir'], 'timestamp.log'), 'r+') as t:
         timestamp = datetime.datetime.strptime(t.read(), '%Y-%m-%d %H:%M:%S.%f')
         logging.info('Last check at %s', timestamp)
 
@@ -49,8 +60,6 @@ def main():
         # Update timestamp log to show that check for new videos is being done now.
         now = str(datetime.datetime.utcnow())
         t.write(now)
-
-    cfg = json.load(open('config.json'))
 
     # Connect to reddit as the bot.
     r = reddit.Reddit(user_agent='Mindcrack YouTube video fetcher bot')
@@ -62,7 +71,8 @@ def main():
         for video in util.youtube_feed(m[0], number_videos=cfg['num_videos']):
             # If the video was added since the last check, submit it to reddit.
             if video['uploaded'] > timestamp:
-                logging.info('Submitting video %s with id: %s', video['title'], video['video_id'])
+                logging.info('Submitting video %s with id: %s',
+                    video['title'], video['video_id'])
 
                 submission_title = '[' + m[1].strip() + '] ' + video['title'] + ' (' + util.get_HMS(video['duration']) + ')'
                 video_url = 'http://www.youtube.com/watch?v=' + video['video_id']
@@ -72,7 +82,8 @@ def main():
                 except:
                     logging.warning('Submission to reddit failed')
             else:
-                logging.info('Skipping video %s with timestamp %s (too old)', video['title'], video['uploaded'])
+                logging.info('Skipping video %s with timestamp %s (too old)',
+                    video['title'], video['uploaded'])
 
     logging.info('Videos checked at %s', now)
     logging.info('Finished')

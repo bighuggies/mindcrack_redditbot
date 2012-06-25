@@ -2,5 +2,6 @@
 	"username": "bot_name",
 	"password": "bot_password",
 	"subreddit": "subredditname",
-	"num_videos": 2
+	"num_videos": 2,
+	"logging_dir": "/home/logs"
 }
