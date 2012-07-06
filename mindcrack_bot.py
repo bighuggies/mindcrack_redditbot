@@ -7,6 +7,7 @@ import sys
 import reddit
 
 import util
+from mindcrackdata import MindCrackData
 
 
 mindcrackers = [
@@ -37,11 +38,7 @@ mindcrackers = [
 
 
 def main():
-    try:
-        cfg_dir = sys.argv[1]
-    except IndexError:
-        cfg_dir = raw_input('Where is config.json located?')
-
+    cfg_dir = sys.argv[1]
     cfg = json.load(open(os.path.join(cfg_dir, 'config.json')))
 
     logging.basicConfig(format='%(asctime)s %(message)s',
@@ -62,28 +59,27 @@ def main():
         t.write(now)
 
     # Connect to reddit as the bot.
-    r = reddit.Reddit(user_agent='Mindcrack YouTube video fetcher bot')
+    r = reddit.Reddit(user_agent='Mindcrack YouTube video fetcher bot, biiighuggies@gmail.com')
     r.login(cfg['username'], cfg['password'])
 
-    for m in mindcrackers:
-        logging.info('Checking videos for %s', m[1])
+    # Connect to the MindCrack video database
+    db = MindCrackData(cfg['database'])
 
-        for video in util.youtube_feed(m[0], number_videos=cfg['num_videos']):
-            # If the video was added since the last check, submit it to reddit.
-            if video['uploaded'] > timestamp:
-                logging.info('Submitting video %s with id: %s',
-                    video['title'], video['video_id'])
+    for video in db.videos(num_videos=cfg['num_videos']):
+        if video['uploaded'] > timestamp:
+            logging.info('Submitting video %s with id: %s',
+                video['title'], video['video_id'])
 
-                submission_title = '[' + m[1].strip() + '] ' + video['title'] + ' (' + util.get_HMS(video['duration']) + ')'
-                video_url = 'http://www.youtube.com/watch?v=' + video['video_id']
+            submission_title = '[' + video['name'].strip() + '] ' + video['title'] + ' (' + util.get_HMS(video['duration']) + ')'
+            video_url = 'http://www.youtube.com/watch?v=' + video['video_id']
 
-                try:
-                    r.submit(cfg['subreddit'], submission_title, url=video_url)
-                except:
-                    logging.warning('Submission to reddit failed')
-            else:
-                logging.info('Skipping video %s with timestamp %s (too old)',
-                    video['title'], video['uploaded'])
+            try:
+                r.submit(cfg['subreddit'], submission_title, url=video_url)
+            except:
+                logging.warning('Submission to reddit failed')
+        else:
+            logging.info('Skipping video %s with timestamp %s (too old)',
+                video['title'], video['uploaded'])
 
     logging.info('Videos checked at %s', now)
     logging.info('Finished')

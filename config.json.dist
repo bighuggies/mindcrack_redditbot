@@ -3,5 +3,6 @@
 	"password": "bot_password",
 	"subreddit": "subredditname",
 	"num_videos": 2,
-	"logging_dir": "/home/logs"
+	"logging_dir": "/home/logs",
+	"database": "connection string"
 }
