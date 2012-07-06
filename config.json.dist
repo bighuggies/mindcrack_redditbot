@@ -4,5 +4,6 @@
 	"subreddit": "subredditname",
 	"num_videos": 2,
 	"logging_dir": "/home/logs",
+	"logging_level": "DEBUG",
 	"database": "connection string"
 }

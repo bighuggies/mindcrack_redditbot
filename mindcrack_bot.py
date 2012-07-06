@@ -41,9 +41,14 @@ def main():
     cfg_dir = sys.argv[1]
     cfg = json.load(open(os.path.join(cfg_dir, 'config.json')))
 
+    if cfg['logging_level'] == 'DEBUG':
+        logging_level = logging.DEBUG
+    else:
+        logging_level = logging.WARNING
+
     logging.basicConfig(format='%(asctime)s %(message)s',
         filename=os.path.join(cfg['logging_dir'], 'mindcrackredditbot.log'),
-        level=logging.DEBUG)
+        level=logging_level)
     logging.info('Started')
 
     # Find out when the last video check was completed.
