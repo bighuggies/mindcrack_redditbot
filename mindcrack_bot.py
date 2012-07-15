@@ -14,6 +14,9 @@ from gevent import monkey
 monkey.patch_socket()
 monkey.patch_ssl()
 
+video_filters = [
+    'uhc', 'ultra hard core', 'ultra hardcore'
+]
 
 mindcrackers = {
     'adlingtont': 'Adlington',
@@ -87,9 +90,26 @@ def videos(number_videos=3):
     return videos
 
 
-def main():
-    print sys.argv[1]
+def video_filter(title):
+    """Check the title of a video against a list of blacklisted phrases.
 
+    We may wish to exclude certain videos from being posted by this bot. This
+    function checks against a list of blacklisted phrases (video_filters) in
+    the title of the video. It is case insensitive.
+
+    Returns:
+    true if the video is allowed
+    false if the video is disallowed
+
+    """
+    for s in video_filters:
+        if s.lower() in title.lower():
+            return False
+
+    return True
+
+
+def main():
     cfg_dir = sys.argv[1]
     cfg = json.load(open(os.path.join(cfg_dir, 'config.json')))
 
@@ -121,16 +141,20 @@ def main():
 
     for video in videos(number_videos=cfg['num_videos']):
         if video['uploaded'] > timestamp:
-            logging.info('Submitting video %s with id: %s',
-                video['title'], video['video_id'])
+            if video_filter(video['title']):
+                logging.info('Submitting video %s with id: %s',
+                    video['title'], video['video_id'])
 
-            submission_title = '[' + mindcrackers[video['uploader']] + '] ' + video['title'] + ' (' + get_HMS(video['duration']) + ')'
-            video_url = 'http://www.youtube.com/watch?v=' + video['video_id']
+                submission_title = '[' + mindcrackers[video['uploader']] + '] ' + video['title'] + ' (' + get_HMS(video['duration']) + ')'
+                video_url = 'http://www.youtube.com/watch?v=' + video['video_id']
 
-            try:
-                r.submit(cfg['subreddit'], submission_title, url=video_url)
-            except:
-                logging.warning('Submission to reddit failed')
+                try:
+                    r.submit(cfg['subreddit'], submission_title, url=video_url)
+                except:
+                    logging.warning('Submission to reddit failed')
+            else:
+                logging.info('Skipping video %s with timestamp %s (filtered)',
+                    video['title'], video['uploaded'])
         else:
             logging.info('Skipping video %s with timestamp %s (too old)',
                 video['title'], video['uploaded'])
