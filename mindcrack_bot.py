@@ -3,41 +3,93 @@ import logging
 import datetime
 import os
 import sys
+import urllib2
 
-import reddit
+import praw
+import gevent
 
-import util
-from mindcrackdata import MindCrackData
+from datetime import timedelta
+
+from gevent import monkey
+monkey.patch_socket()
+monkey.patch_ssl()
 
 
-mindcrackers = [
-    ('adlingtont', 'Adlington'),
-    ('bdoubleo100', 'BdoubleO'),
-    ('arkasmc', 'Arkas'),
-    ('ethoslab', 'EthosLab'),
-    ('jsano19', 'Jsano'),
-    ('kurtjmac', 'Kurtjmac'),
-    ('millbeeful', 'MillBee'),
-    ('nebris88', 'Nebris'),
-    ('pauseunpause', 'PauseUnpause'),
-    ('vintagebeef', 'VintageBeef'),
-    ('shreeyamnet', 'Shreeyam'),
-    ('imanderzel', 'AnderZEL'),
-    ('w92baj', 'Baj'),
-    ('docm77', 'DocM'),
-    ('guudeboulderfist', 'Guude'),
-    ('justd3fy', 'JustDefy'),
-    ('supermcgamer', 'MCGamer'),
-    ('mhykol', 'Mhykol'),
-    ('pakratt13', 'Pakratt'),
-    ('pyropuncher', 'PyroPuncher'),
-    ('thejims', 'TheJims'),
-    ('zisteau', 'Zisteau'),
-    ('mindcracknetwork', 'MindCrackNetwork')
-]
+mindcrackers = {
+    'adlingtont': 'Adlington',
+    'bdoubleo100': 'BdoubleO',
+    'arkasmc': 'Arkas',
+    'ethoslab': 'EthosLab',
+    'jsano19': 'Jsano',
+    'kurtjmac': 'Kurtjmac',
+    'millbeeful': 'MillBee',
+    'nebris88': 'Nebris',
+    'pauseunpause': 'PauseUnpause',
+    'vintagebeef': 'VintageBeef',
+    'shreeyamnet': 'Shreeyam',
+    'imanderzel': 'AnderZEL',
+    'w92baj': 'Baj',
+    'docm77': 'DocM',
+    'guudeboulderfist': 'Guude',
+    'justd3fy': 'JustDefy',
+    'supermcgamer': 'MCGamer',
+    'mhykol': 'Mhykol',
+    'pakratt13': 'Pakratt',
+    'pyropuncher': 'PyroPuncher',
+    'thejims': 'TheJims',
+    'zisteau': 'Zisteau',
+    'mindcracknetwork': 'MindCrackNetwork'
+}
+
+
+def get_HMS(time):
+    hms = str(timedelta(seconds=time))
+    parts = hms.split(':')
+
+    if parts[0] == '0':
+        return ':'.join(parts[1:])
+    else:
+        return hms
+
+
+def process_video(data):
+    return dict(
+        video_id=data['id'],
+        title=data['title'],
+        uploader=data['uploader'],
+        uploaded=datetime.datetime.strptime(data['uploaded'], "%Y-%m-%dT%H:%M:%S.%fZ"),
+        duration=data['duration']
+    )
+
+
+def get_uploads(username, number_videos=2, offset=1):
+    # print('Getting ' + str(number_videos) + ' uploads for ' + username)
+
+    feed_url = 'https://gdata.youtube.com/feeds/api/users/{username}/uploads?v=2&alt=jsonc&start-index={offset}&max-results={number_videos}'.format(username=username, offset=offset, number_videos=number_videos)
+
+    feed = json.loads(urllib2.urlopen(feed_url).read())
+
+    if feed['data']['totalItems'] > 0:
+        return [process_video(item) for item in feed['data']['items']]
+    else:
+        return []
+
+
+def videos(number_videos=3):
+    jobs = [gevent.spawn(get_uploads, username, number_videos=number_videos)
+            for username, _ in mindcrackers.iteritems()]
+    gevent.joinall(jobs)
+
+    videos = []
+    for job in jobs:
+        videos = videos + job.value
+
+    return videos
 
 
 def main():
+    print sys.argv[1]
+
     cfg_dir = sys.argv[1]
     cfg = json.load(open(os.path.join(cfg_dir, 'config.json')))
 
@@ -64,18 +116,15 @@ def main():
         t.write(now)
 
     # Connect to reddit as the bot.
-    r = reddit.Reddit(user_agent='Mindcrack YouTube video fetcher bot, biiighuggies@gmail.com')
+    r = praw.Reddit(user_agent='Mindcrack YouTube video fetcher bot, by /u/bighuggies')
     r.login(cfg['username'], cfg['password'])
 
-    # Connect to the MindCrack video database
-    db = MindCrackData(cfg['database'])
-
-    for video in db.videos(num_videos=cfg['num_videos']):
+    for video in videos(number_videos=cfg['num_videos']):
         if video['uploaded'] > timestamp:
             logging.info('Submitting video %s with id: %s',
                 video['title'], video['video_id'])
 
-            submission_title = '[' + video['name'].strip() + '] ' + video['title'] + ' (' + util.get_HMS(video['duration']) + ')'
+            submission_title = '[' + mindcrackers[video['uploader']] + '] ' + video['title'] + ' (' + get_HMS(video['duration']) + ')'
             video_url = 'http://www.youtube.com/watch?v=' + video['video_id']
 
             try:
