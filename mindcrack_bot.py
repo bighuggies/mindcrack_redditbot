@@ -128,7 +128,7 @@ def main():
         timestamp = datetime.datetime.strptime(t.read(), '%Y-%m-%d %H:%M:%S.%f')
         logging.info('Last check at %s', timestamp)
 
-        # Go back to the beginning of the file to avoid IOError: [Errno 0] Error
+        # Go back to the beginning of the file to avoid IOError: [Errno 0]
         t.seek(0, 0)
 
         # Update timestamp log to show that check for new videos is being done now.
